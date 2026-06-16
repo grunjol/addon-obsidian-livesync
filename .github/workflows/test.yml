@@ -1,0 +1,21 @@
+name: Home Assistant builder
+
+on: [pull_request]
+
+jobs:
+  build:
+    name: Test build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Test build
+        uses: home-assistant/builder@master
+        with:
+          args: |
+            --test \
+            --amd64 \
+            --target obsidian-livesync \
+            --docker-hub grunjol \
+            --image obsidian-livesync-{arch}

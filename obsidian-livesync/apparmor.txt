@@ -1,0 +1,71 @@
+#include <tunables/global>
+
+profile obsidian-livesync flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Capabilities
+  file,
+  signal (send) set=(kill,term,int,hup,cont),
+
+  # S6-Overlay
+  /init ix,
+  /bin/** ix,
+  /usr/bin/** ix,
+  /run/{s6,s6-rc*,service}/** ix,
+  /package/** ix,
+  /command/** ix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+  /run/{,**} rwk,
+  /dev/tty rw,
+
+  # Bashio
+  /usr/lib/bashio/** ix,
+  /tmp/** rwk,
+
+  # Node.js
+  /usr/bin/node ix,
+  /usr/lib/node*/** ix,
+
+  # Access to options.json and other files within your app
+  /data/** rw,
+
+  # Mapped volumes
+  /share/** rw,
+  /config/** rw,
+
+  # LiveSync CLI
+  /opt/livesync-cli/** rwkix,
+
+  # Start new profile for service
+  /usr/bin/with-contenv cx -> livesync,
+
+  profile livesync flags=(attach_disconnected,mediate_deleted) {
+    #include <abstractions/base>
+
+    # Receive signals from S6-Overlay
+    signal (receive) peer=*_obsidian-livesync,
+
+    # Access to options.json and other files within your app
+    /data/** rw,
+
+    # Access to mapped volumes
+    /share/** rw,
+    /config/** rw,
+
+    # LiveSync CLI
+    /opt/livesync-cli/** rwkix,
+    /usr/bin/node ix,
+
+    # Bash and common utilities
+    /bin/bash rix,
+    /bin/sh rix,
+    /bin/echo ix,
+    /bin/mkdir ix,
+    /bin/cat ix,
+    /etc/passwd r,
+    /dev/tty rw,
+    /proc/* r,
+  }
+}

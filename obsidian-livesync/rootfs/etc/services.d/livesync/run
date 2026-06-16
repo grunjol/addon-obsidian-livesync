@@ -1,0 +1,86 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Obsidian LiveSync daemon
+# ==============================================================================
+
+COUCHDB_URI=$(bashio::config 'couchdb_uri')
+COUCHDB_USER=$(bashio::config 'couchdb_user')
+COUCHDB_PASSWORD=$(bashio::config 'couchdb_password')
+POLLING_INTERVAL=$(bashio::config 'polling_interval')
+
+VAULT_COUNT=$(bashio::jq "/data/options.json" ".vaults | length")
+
+declare -a PIDS
+
+cleanup() {
+    bashio::log.info "Shutting down LiveSync daemons..."
+    for pid in "${PIDS[@]}"; do
+        kill "${pid}" 2>/dev/null || true
+    done
+    wait 2>/dev/null
+    bashio::log.info "All LiveSync daemons stopped."
+    exit 0
+}
+
+trap cleanup SIGTERM SIGINT
+
+for i in $(seq 0 $((VAULT_COUNT - 1))); do
+    VAULT_NAME=$(bashio::jq "/data/options.json" ".vaults[${i}].name")
+    VAULT_DBNAME=$(bashio::jq "/data/options.json" ".vaults[${i}].dbname")
+    VAULT_PASSPHRASE=$(bashio::jq "/data/options.json" ".vaults[${i}].passphrase")
+
+    DB_PATH="/config/data/${VAULT_NAME}"
+    VAULT_PATH="/share/obsidian-livesync/${VAULT_NAME}"
+
+    mkdir -p "${DB_PATH}/.livesync"
+    mkdir -p "${VAULT_PATH}"
+
+    cat > "${DB_PATH}/.livesync/settings.json" <<EOF
+{
+    "couchDB_URI": "${COUCHDB_URI}",
+    "couchDB_USER": "${COUCHDB_USER}",
+    "couchDB_PASSWORD": "${COUCHDB_PASSWORD}",
+    "couchDB_DBNAME": "${VAULT_DBNAME}",
+    "passphrase": "${VAULT_PASSPHRASE}",
+    "liveSync": true,
+    "syncOnSave": true,
+    "syncOnStart": true,
+    "encrypt": true,
+    "usePluginSync": false,
+    "isConfigured": true
+}
+EOF
+
+    if [ ! -f "${VAULT_PATH}/.livesync/ignore" ]; then
+        cat > "${VAULT_PATH}/.livesync/ignore" <<'IGNOREEOF'
+# Obsidian workspace files (avoid sync conflicts)
+.obsidian/workspace*.json
+.obsidian/workspace-mobile*.json
+.obsidian/hotkeys.json
+
+# Trash
+.trash/
+
+# Merge patterns from .gitignore if present
+import: .gitignore
+IGNOREEOF
+    fi
+
+    INTERVAL_ARG=""
+    if [ "${POLLING_INTERVAL}" -gt 0 ]; then
+        INTERVAL_ARG="--interval ${POLLING_INTERVAL}"
+    fi
+
+    bashio::log.info "Starting LiveSync daemon for vault '${VAULT_NAME}' (db: ${VAULT_DBNAME})..."
+
+    node /opt/livesync-cli/dist/index.cjs "${DB_PATH}" \
+        --vault "${VAULT_PATH}" \
+        ${INTERVAL_ARG} \
+        daemon &
+
+    PIDS+=($!)
+done
+
+bashio::log.info "All LiveSync daemons started (${#PIDS[@]} vaults). Waiting..."
+
+wait
