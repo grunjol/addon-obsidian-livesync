@@ -33,7 +33,7 @@ for i in $(seq 0 $((VAULT_COUNT - 1))); do
     VAULT_PATH="/share/obsidian-livesync/${VAULT_NAME}"
 
     mkdir -p "${DB_PATH}/.livesync"
-    mkdir -p "${VAULT_PATH}"
+    mkdir -p "${VAULT_PATH}/.livesync"
 
     cat > "${DB_PATH}/.livesync/settings.json" <<EOF
 {
