@@ -5,7 +5,8 @@ RUN apk add --no-cache git python3 make g++
 
 WORKDIR /build
 
-RUN git clone --recurse-submodules https://github.com/vrtmrz/obsidian-livesync.git .
+RUN git clone --depth 1 --recurse-submodules --shallow-submodules \
+    https://github.com/vrtmrz/obsidian-livesync.git .
 
 RUN npm install
 
@@ -15,8 +16,8 @@ RUN npm run build
 
 # Install only runtime dependencies (native modules: leveldown, chokidar, etc.)
 WORKDIR /runtime-deps
-RUN cp /build/src/apps/cli/runtime-package.json ./package.json
-RUN npm install --omit=dev
+RUN cp /build/src/apps/cli/runtime-package.json ./package.json && \
+    npm install --omit=dev
 
 # Stage 2: Runtime
 FROM ghcr.io/home-assistant/base:latest
