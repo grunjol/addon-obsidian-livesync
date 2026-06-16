@@ -1,3 +1,6 @@
+# Upstream obsidian-livesync version to build
+ARG LIVESYNC_VERSION=0.25.76
+
 # Stage 1: Build the CLI and compile native dependencies
 FROM node:24-alpine AS builder
 
@@ -5,7 +8,8 @@ RUN apk add --no-cache git python3 make g++
 
 WORKDIR /build
 
-RUN git clone --depth 1 --recurse-submodules --shallow-submodules \
+RUN git clone --depth 1 --branch ${LIVESYNC_VERSION} \
+    --recurse-submodules --shallow-submodules \
     https://github.com/vrtmrz/obsidian-livesync.git .
 
 RUN npm install
