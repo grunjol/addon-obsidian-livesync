@@ -1,7 +1,7 @@
 # Stage 1: Build the CLI and compile native dependencies
 FROM node:24-alpine AS builder
 
-ARG LIVESYNC_VERSION=0.25.76
+ARG LIVESYNC_VERSION=0.25.83
 
 RUN apk add --no-cache git python3 make g++
 
