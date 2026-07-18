@@ -19,7 +19,7 @@ RUN npm run build
 
 # Install only runtime dependencies (native modules: leveldown, chokidar, etc.)
 WORKDIR /runtime-deps
-RUN cp /build/src/apps/cli/runtime-package.json ./package.json && \
+RUN cp /build/src/apps/cli/package.json ./package.json && \
     npm install --omit=dev
 
 # Stage 2: Runtime
